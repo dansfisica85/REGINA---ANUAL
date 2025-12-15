@@ -38,8 +38,8 @@
   $: activeData = currentPage === 1 ? schoolsData : currentPage === 2 ? alunosPresenteData : biPlataformasData;
   $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : currentPage === 2 ? 'Aluno Presente' : 'BI Plataformas';
   $: pageIcon = currentPage === 1 ? '📊' : currentPage === 2 ? '👥' : '💻';
-  $: maxScale = currentPage === 1 ? 10 : currentPage === 2 ? 100 : 10;
-  $: unitLabel = currentPage === 1 ? 'Média (0-10)' : currentPage === 2 ? 'Presença (%)' : 'Uso Plataformas (0-10)';
+  $: maxScale = currentPage === 1 ? 10 : 100;
+  $: unitLabel = currentPage === 1 ? 'Média (0-10)' : currentPage === 2 ? 'Presença (%)' : 'Uso Plataformas (%)';
 
   function processData() {
     calculator.clearLog();
@@ -48,7 +48,7 @@
     
     // Calcula média anual para cada escola usando Monte Carlo
     activeData.forEach(school => {
-      const result = calculator.calculateAnnualMean(school.bimestres, school.name);
+      const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxScale);
       calculationResults.push({
         ...school,
         ...result
@@ -63,7 +63,7 @@
 
     // Calcula estatísticas por bimestre
     ['b1', 'b2', 'b3', 'b4'].forEach(bim => {
-      const stats = calculator.calculateBimestreMonteCarlo(activeData, bim);
+      const stats = calculator.calculateBimestreMonteCarlo(activeData, bim, maxScale);
       bimestreStats.push({
         ...stats,
         name: bimestreNames[bim]
@@ -309,14 +309,14 @@
     <div class="stat-card">
       <span class="stat-icon">📈</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{currentPage === 2 ? '%' : ''}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 ? '%' : ''}</span>
         <span class="stat-label">{currentPage === 1 ? 'Maior Média' : currentPage === 2 ? 'Maior Presença' : 'Maior Uso'}</span>
       </div>
     </div>
     <div class="stat-card">
       <span class="stat-icon">📉</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{currentPage === 2 ? '%' : ''}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 ? '%' : ''}</span>
         <span class="stat-label">{currentPage === 1 ? 'Menor Média' : currentPage === 2 ? 'Menor Presença' : 'Menor Uso'}</span>
       </div>
     </div>

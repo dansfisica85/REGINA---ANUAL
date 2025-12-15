@@ -24,8 +24,11 @@ export class MonteCarloCalculator {
   /**
    * Calcula a média anual usando Monte Carlo
    * Considera variabilidade nos dados bimestrais
+   * @param {Object} bimestres - Objeto com valores b1, b2, b3, b4
+   * @param {string} schoolName - Nome da escola
+   * @param {number} maxValue - Valor máximo da escala (10 ou 100)
    */
-  calculateAnnualMean(bimestres, schoolName) {
+  calculateAnnualMean(bimestres, schoolName, maxValue = 10) {
     const values = Object.values(bimestres);
     const simpleMean = values.reduce((a, b) => a + b, 0) / values.length;
     
@@ -44,7 +47,7 @@ export class MonteCarloCalculator {
         // Adiciona pequena variação aleatória (incerteza de medição)
         const uncertainty = stdDev * 0.05; // 5% do desvio padrão como incerteza
         const simulatedValue = this.randomNormal(values[j], uncertainty);
-        simulatedSum += Math.max(0, Math.min(10, simulatedValue)); // Limita entre 0 e 10
+        simulatedSum += Math.max(0, Math.min(maxValue, simulatedValue)); // Limita entre 0 e maxValue
       }
       const simulatedMean = simulatedSum / values.length;
       monteCarloResults.push(simulatedMean);
@@ -83,8 +86,11 @@ export class MonteCarloCalculator {
 
   /**
    * Calcula estatísticas para um bimestre específico
+   * @param {Array} schools - Array de escolas
+   * @param {string} bimestre - Nome do bimestre (b1, b2, b3, b4)
+   * @param {number} maxValue - Valor máximo da escala (10 ou 100)
    */
-  calculateBimestreMonteCarlo(schools, bimestre) {
+  calculateBimestreMonteCarlo(schools, bimestre, maxValue = 10) {
     const values = schools.map(s => s.bimestres[bimestre]);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
     const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
@@ -98,7 +104,7 @@ export class MonteCarloCalculator {
       for (const val of values) {
         const uncertainty = stdDev * 0.03;
         const simulated = this.randomNormal(val, uncertainty);
-        simulatedSum += Math.max(0, Math.min(10, simulated));
+        simulatedSum += Math.max(0, Math.min(maxValue, simulated));
       }
       monteCarloResults.push(simulatedSum / values.length);
     }
