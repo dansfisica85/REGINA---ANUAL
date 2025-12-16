@@ -637,6 +637,10 @@
     </button>
   </nav>
 
+  <div class="warning-notice">
+    ⚠️ Clique 2X (duas vezes!) no botão escolhido para carregar a página!!!
+  </div>
+
   <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6}>
     <div class="header-content">
       <h1>{pageIcon} Análise REGINA</h1>
@@ -1065,6 +1069,11 @@
   <footer>
     <p>© 2025 Análise REGINA - Desenvolvido com Svelte + Chart.js + Monte Carlo</p>
     <p class="footer-note">Dados processados com {calculationResults.length > 0 ? '10.000' : '0'} iterações de simulação por escola</p>
+    <div class="creator-info">
+      <p class="creator-name">👨‍🏫 Criado por: Profº Davi Antonino Nunes da Silva</p>
+      <p class="creator-contact">📧 E-mails: davi.silva@educacao.sp.gov.br | professordavi85@gmail.com</p>
+      <p class="creator-contact">📱 WhatsApp: (16) 99260-4315</p>
+    </div>
   </footer>
 </main>
 
@@ -1572,6 +1581,45 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     border-color: transparent;
     box-shadow: 0 5px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  /* Aviso de duplo clique */
+  .warning-notice {
+    text-align: center;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+    border-radius: 15px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1a1a2e;
+    animation: pulse 2s infinite;
+    box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 0.9; }
+  }
+
+  /* Credenciais do criador */
+  .creator-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .creator-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 8px;
+  }
+
+  .creator-contact {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 5px 0;
   }
 
   /* Dashboard Individual - Página 6 */

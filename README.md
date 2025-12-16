@@ -24,9 +24,14 @@ O **Análise REGINA** é uma aplicação web desenvolvida em Svelte que processa
 
 | Página | Descrição | Escala | Cor do Header |
 |--------|-----------|--------|---------------|
-| 📊 **Plataforma SUPER BI** | Médias de desempenho das escolas | 0-10 | Roxo |
+| 📊 **SUPER BI** | Médias de desempenho das escolas | 0-10 | Roxo |
 | 👥 **Aluno Presente** | Taxa de presença dos alunos | 0-100% | Verde |
-| 💻 **BI Plataformas** | Uso das plataformas educacionais | 0-10 | Rosa |
+| 💻 **BI Plataformas** | Uso das plataformas educacionais | 0-100% | Rosa |
+| 🤝 **Apoio Presencial** | Médias de apoio presencial | Variável | Rosa/Vermelho |
+| 📝 **Tarefas** | Percentual de conclusão de tarefas | 0-100% | Amarelo |
+| 🏫 **Dashboard Individual** | Análise completa por escola | Todos | Gradiente |
+
+> ⚠️ **IMPORTANTE:** Clique 2X (duas vezes!) no botão escolhido para carregar a página!!!
 
 ## 🔬 Metodologia - Simulação Monte Carlo
 
@@ -224,13 +229,21 @@ Contribuições são bem-vindas! Para contribuir:
 4. Push para a branch (`git push origin feature/NovaFeature`)
 5. Abra um Pull Request
 
-## 📧 Contato
+## �‍🏫 Criador
 
-**Desenvolvido para análise educacional da rede estadual de São Paulo**
+**Profº Davi Antonino Nunes da Silva**
+
+- 📧 **E-mails:** 
+  - davi.silva@educacao.sp.gov.br
+  - professordavi85@gmail.com
+- 📱 **WhatsApp:** (16) 99260-4315
 
 ---
 
 <p align="center">
   <strong>© 2025 Análise REGINA</strong><br>
-  Desenvolvido com ❤️ usando Svelte + Chart.js + Monte Carlo
+  Desenvolvido com ❤️ usando Svelte + Chart.js + Monte Carlo<br><br>
+  <strong>👨‍🏫 Criado por: Profº Davi Antonino Nunes da Silva</strong><br>
+  📧 davi.silva@educacao.sp.gov.br | professordavi85@gmail.com<br>
+  📱 WhatsApp: (16) 99260-4315
 </p>
