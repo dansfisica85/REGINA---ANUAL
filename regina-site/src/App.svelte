@@ -4,6 +4,8 @@
   import { schoolsData, bimestreNames } from './data/schools.js';
   import { alunosPresenteData, bimestreNames as bimestreNamesAP } from './data/alunosPresente.js';
   import { biPlataformasData, bimestreNames as bimestreNamesBP } from './data/biPlataformas.js';
+  import { apoioPresencialData, bimestreNames as bimestreNamesAPres } from './data/apoioPresencial.js';
+  import { tarefasData, bimestreNames as bimestreNamesTar } from './data/tarefas.js';
   import MonteCarloCalculator from './lib/monteCarlo.js';
 
   // Navegação
@@ -15,6 +17,14 @@
   let annualChartCanvas;
   let bimestreChartCanvas;
   
+  // Charts para página 6 (Dashboard Individual)
+  let radarChart = null;
+  let radarChartCanvas;
+  let evolutionChart = null;
+  let evolutionChartCanvas;
+  let comparisonChart = null;
+  let comparisonChartCanvas;
+  
   // State
   let showCalculation = false;
   let selectedSchool = null;
@@ -22,6 +32,10 @@
   let calculationResults = [];
   let bimestreStats = [];
   let ranking = [];
+  
+  // State página 6
+  let selectedSchoolDashboard = null;
+  let allSchoolsData = [];
   
   const calculator = new MonteCarloCalculator(10000);
 
@@ -35,11 +49,42 @@
   ];
 
   // Dados ativos baseados na página
-  $: activeData = currentPage === 1 ? schoolsData : currentPage === 2 ? alunosPresenteData : biPlataformasData;
-  $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : currentPage === 2 ? 'Aluno Presente' : 'BI Plataformas';
-  $: pageIcon = currentPage === 1 ? '📊' : currentPage === 2 ? '👥' : '💻';
-  $: maxScale = currentPage === 1 ? 10 : 100;
-  $: unitLabel = currentPage === 1 ? 'Média (0-10)' : currentPage === 2 ? 'Presença (%)' : 'Uso Plataformas (%)';
+  $: activeData = currentPage === 1 ? schoolsData : 
+                  currentPage === 2 ? alunosPresenteData : 
+                  currentPage === 3 ? biPlataformasData : 
+                  currentPage === 4 ? apoioPresencialData : 
+                  currentPage === 5 ? tarefasData : schoolsData;
+  
+  $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : 
+                 currentPage === 2 ? 'Aluno Presente' : 
+                 currentPage === 3 ? 'BI Plataformas' : 
+                 currentPage === 4 ? 'Apoio Presencial' : 
+                 currentPage === 5 ? 'Tarefas' : 'Dashboard Individual';
+  
+  $: pageIcon = currentPage === 1 ? '📊' : 
+                currentPage === 2 ? '👥' : 
+                currentPage === 3 ? '💻' : 
+                currentPage === 4 ? '🤝' : 
+                currentPage === 5 ? '📝' : '🏫';
+  
+  $: maxScale = currentPage === 1 ? 10 : 
+                currentPage === 4 ? 20 : 100;
+  
+  $: unitLabel = currentPage === 1 ? 'Média (0-10)' : 
+                 currentPage === 2 ? 'Presença (%)' : 
+                 currentPage === 3 ? 'Uso Plataformas (%)' : 
+                 currentPage === 4 ? 'Apoio Presencial (média)' : 
+                 currentPage === 5 ? 'Conclusão Tarefas (%)' : '';
+
+  // Função para determinar se a página atual usa porcentagem
+  $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5;
+  
+  // Labels específicos por página
+  $: metricLabel = currentPage === 1 ? 'Média' : 
+                   currentPage === 2 ? 'Presença' : 
+                   currentPage === 3 ? 'Uso' : 
+                   currentPage === 4 ? 'Apoio' : 
+                   currentPage === 5 ? 'Tarefas' : 'Valor';
 
   function processData() {
     calculator.clearLog();
@@ -85,7 +130,7 @@
       data: {
         labels: sortedData.map(s => s.name.length > 25 ? s.name.substring(0, 25) + '...' : s.name),
         datasets: [{
-          label: currentPage === 1 ? 'Média Anual (Monte Carlo)' : currentPage === 2 ? 'Presença Anual (Monte Carlo)' : 'Uso Plataformas (Monte Carlo)',
+          label: `${metricLabel} Anual (Monte Carlo)`,
           data: sortedData.map(s => s.monteCarloMean),
           backgroundColor: sortedData.map((_, i) => colors[i % colors.length]),
           borderColor: sortedData.map((_, i) => colors[i % colors.length]),
@@ -102,7 +147,7 @@
           },
           title: {
             display: true,
-            text: `Ranking ${currentPage === 1 ? 'de Médias' : currentPage === 2 ? 'de Presença' : 'de Uso das Plataformas'} Anuais - Método Monte Carlo`,
+            text: `Ranking de ${metricLabel} Anuais - Método Monte Carlo`,
             font: { size: 16, weight: 'bold' }
           },
           tooltip: {
@@ -110,7 +155,7 @@
               label: (context) => {
                 const school = sortedData[context.dataIndex];
                 return [
-                  `${currentPage === 1 ? 'Média' : currentPage === 2 ? 'Presença' : 'Uso'} MC: ${school.monteCarloMean.toFixed(4)}${currentPage === 2 ? '%' : ''}`,
+                  `${metricLabel} MC: ${school.monteCarloMean.toFixed(4)}${usesPercentage ? '%' : ''}`,
                   `IC 95%: [${school.confidenceInterval.lower.toFixed(2)} - ${school.confidenceInterval.upper.toFixed(2)}]`
                 ];
               }
@@ -211,11 +256,290 @@
   function changePage(page) {
     currentPage = page;
     selectedBimestre = 'all';
-    processData();
+    
+    if (page === 6) {
+      prepareAllSchoolsData();
+      setTimeout(() => {
+        if (!selectedSchoolDashboard && allSchoolsData.length > 0) {
+          selectSchoolForDashboard(allSchoolsData[0].name);
+        }
+      }, 50);
+    } else {
+      processData();
+      setTimeout(() => {
+        createAnnualChart();
+        createBimestreChart();
+      }, 50);
+    }
+  }
+
+  function prepareAllSchoolsData() {
+    // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
+    const schoolNames = new Set();
+    
+    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData].forEach(dataset => {
+      dataset.forEach(school => schoolNames.add(school.name));
+    });
+    
+    allSchoolsData = Array.from(schoolNames).map(name => {
+      const superBI = schoolsData.find(s => s.name === name);
+      const alunoPresente = alunosPresenteData.find(s => s.name === name);
+      const biPlataformas = biPlataformasData.find(s => s.name === name);
+      const apoioPresencial = apoioPresencialData.find(s => s.name === name);
+      const tarefas = tarefasData.find(s => s.name === name);
+      
+      // Calcular médias MC para cada indicador
+      const calcMedia = (school, maxVal) => {
+        if (!school) return null;
+        const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxVal);
+        return result;
+      };
+      
+      return {
+        name,
+        tipo: superBI?.tipo || alunoPresente?.tipo || 'Regular',
+        turno: superBI?.turno || alunoPresente?.turno || '1 T',
+        alunos: superBI?.alunos || alunoPresente?.alunos || 0,
+        superBI: superBI ? { ...superBI, ...calcMedia(superBI, 10) } : null,
+        alunoPresente: alunoPresente ? { ...alunoPresente, ...calcMedia(alunoPresente, 100) } : null,
+        biPlataformas: biPlataformas ? { ...biPlataformas, ...calcMedia(biPlataformas, 100) } : null,
+        apoioPresencial: apoioPresencial ? { ...apoioPresencial, ...calcMedia(apoioPresencial, 20) } : null,
+        tarefas: tarefas ? { ...tarefas, ...calcMedia(tarefas, 100) } : null
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  function selectSchoolForDashboard(schoolName) {
+    selectedSchoolDashboard = allSchoolsData.find(s => s.name === schoolName);
     setTimeout(() => {
-      createAnnualChart();
-      createBimestreChart();
+      createRadarChart();
+      createEvolutionChart();
+      createComparisonChart();
     }, 50);
+  }
+  
+  function createRadarChart() {
+    if (radarChart) radarChart.destroy();
+    if (!radarChartCanvas || !selectedSchoolDashboard) return;
+    
+    const ctx = radarChartCanvas.getContext('2d');
+    const school = selectedSchoolDashboard;
+    
+    // Normalizar valores para escala 0-100
+    const normalize = (val, max) => val ? (val / max) * 100 : 0;
+    
+    const data = [
+      school.superBI ? normalize(school.superBI.monteCarloMean, 10) : 0,
+      school.alunoPresente ? school.alunoPresente.monteCarloMean : 0,
+      school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
+      school.apoioPresencial ? normalize(school.apoioPresencial.monteCarloMean, 15) : 0,
+      school.tarefas ? school.tarefas.monteCarloMean : 0
+    ];
+    
+    radarChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas'],
+        datasets: [{
+          label: school.name,
+          data: data,
+          backgroundColor: 'rgba(102, 126, 234, 0.3)',
+          borderColor: '#667eea',
+          borderWidth: 2,
+          pointBackgroundColor: '#667eea',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: '#667eea'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Perfil de Desempenho (Normalizado 0-100)',
+            font: { size: 14, weight: 'bold' }
+          },
+          legend: { display: false }
+        },
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { stepSize: 20 },
+            pointLabels: { font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+  
+  function createEvolutionChart() {
+    if (evolutionChart) evolutionChart.destroy();
+    if (!evolutionChartCanvas || !selectedSchoolDashboard) return;
+    
+    const ctx = evolutionChartCanvas.getContext('2d');
+    const school = selectedSchoolDashboard;
+    
+    const datasets = [];
+    const labels = ['1º Bim', '2º Bim', '3º Bim', '4º Bim'];
+    
+    if (school.superBI) {
+      datasets.push({
+        label: 'SUPER BI (x10)',
+        data: [school.superBI.bimestres.b1 * 10, school.superBI.bimestres.b2 * 10, 
+               school.superBI.bimestres.b3 * 10, school.superBI.bimestres.b4 * 10],
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        tension: 0.3
+      });
+    }
+    if (school.alunoPresente) {
+      datasets.push({
+        label: 'Aluno Presente (%)',
+        data: [school.alunoPresente.bimestres.b1, school.alunoPresente.bimestres.b2, 
+               school.alunoPresente.bimestres.b3, school.alunoPresente.bimestres.b4],
+        borderColor: '#11998e',
+        backgroundColor: 'rgba(17, 153, 142, 0.1)',
+        tension: 0.3
+      });
+    }
+    if (school.biPlataformas) {
+      datasets.push({
+        label: 'BI Plataformas (%)',
+        data: [school.biPlataformas.bimestres.b1, school.biPlataformas.bimestres.b2, 
+               school.biPlataformas.bimestres.b3, school.biPlataformas.bimestres.b4],
+        borderColor: '#f5576c',
+        backgroundColor: 'rgba(245, 87, 108, 0.1)',
+        tension: 0.3
+      });
+    }
+    if (school.apoioPresencial) {
+      datasets.push({
+        label: 'Apoio Presencial (x10)',
+        data: [school.apoioPresencial.bimestres.b1 * 10, school.apoioPresencial.bimestres.b2 * 10, 
+               school.apoioPresencial.bimestres.b3 * 10, school.apoioPresencial.bimestres.b4 * 10],
+        borderColor: '#f093fb',
+        backgroundColor: 'rgba(240, 147, 251, 0.1)',
+        tension: 0.3
+      });
+    }
+    if (school.tarefas) {
+      datasets.push({
+        label: 'Tarefas (%)',
+        data: [school.tarefas.bimestres.b1, school.tarefas.bimestres.b2, 
+               school.tarefas.bimestres.b3, school.tarefas.bimestres.b4],
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+        tension: 0.3
+      });
+    }
+    
+    evolutionChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Evolução por Bimestre',
+            font: { size: 14, weight: 'bold' }
+          },
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 10 } }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 110,
+            title: { display: true, text: 'Valor (normalizado)' }
+          }
+        }
+      }
+    });
+  }
+  
+  function createComparisonChart() {
+    if (comparisonChart) comparisonChart.destroy();
+    if (!comparisonChartCanvas || !selectedSchoolDashboard) return;
+    
+    const ctx = comparisonChartCanvas.getContext('2d');
+    const school = selectedSchoolDashboard;
+    
+    // Calcular médias gerais de todas as escolas para comparação
+    const avgSuperBI = schoolsData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / schoolsData.length;
+    const avgAlunoPresente = alunosPresenteData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / alunosPresenteData.length;
+    const avgBiPlataformas = biPlataformasData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / biPlataformasData.length;
+    const avgApoioPresencial = apoioPresencialData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / apoioPresencialData.length;
+    const avgTarefas = tarefasData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / tarefasData.length;
+    
+    const labels = ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas'];
+    
+    // Normalizar para escala 0-100 para comparação justa
+    const schoolData = [
+      school.superBI ? school.superBI.monteCarloMean * 10 : 0,
+      school.alunoPresente ? school.alunoPresente.monteCarloMean : 0,
+      school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
+      school.apoioPresencial ? (school.apoioPresencial.monteCarloMean / 15) * 100 : 0,
+      school.tarefas ? school.tarefas.monteCarloMean : 0
+    ];
+    
+    const avgData = [
+      avgSuperBI * 10,
+      avgAlunoPresente,
+      avgBiPlataformas,
+      (avgApoioPresencial / 15) * 100,
+      avgTarefas
+    ];
+    
+    comparisonChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: school.name,
+            data: schoolData,
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: '#667eea',
+            borderWidth: 1
+          },
+          {
+            label: 'Média Geral (26 escolas)',
+            data: avgData,
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            borderColor: '#fff',
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Comparação com Média Geral (Normalizado)',
+            font: { size: 14, weight: 'bold' }
+          },
+          legend: {
+            position: 'bottom'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 110,
+            title: { display: true, text: 'Valor (normalizado 0-100)' }
+          }
+        }
+      }
+    });
   }
 
   function showSchoolDetails(school) {
@@ -251,6 +575,9 @@
   onDestroy(() => {
     if (annualChart) annualChart.destroy();
     if (bimestreChart) bimestreChart.destroy();
+    if (radarChart) radarChart.destroy();
+    if (evolutionChart) evolutionChart.destroy();
+    if (comparisonChart) comparisonChart.destroy();
   });
 
   $: if (selectedBimestre && bimestreChartCanvas && ranking.length > 0) {
@@ -271,7 +598,7 @@
       class:active={currentPage === 1} 
       on:click={() => changePage(1)}
     >
-      📊 Plataforma SUPER BI
+      📊 SUPER BI
     </button>
     <button 
       class="nav-btn" 
@@ -287,16 +614,39 @@
     >
       💻 BI Plataformas
     </button>
+    <button 
+      class="nav-btn" 
+      class:active={currentPage === 4} 
+      on:click={() => changePage(4)}
+    >
+      🤝 Apoio Presencial
+    </button>
+    <button 
+      class="nav-btn" 
+      class:active={currentPage === 5} 
+      on:click={() => changePage(5)}
+    >
+      📝 Tarefas
+    </button>
+    <button 
+      class="nav-btn dashboard-btn" 
+      class:active={currentPage === 6} 
+      on:click={() => changePage(6)}
+    >
+      🏫 Dashboard Individual
+    </button>
   </nav>
 
-  <header class:page2={currentPage === 2} class:page3={currentPage === 3}>
+  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6}>
     <div class="header-content">
       <h1>{pageIcon} Análise REGINA</h1>
       <p class="subtitle">Registros Educacionais Gerais e Índices Avaliativos</p>
       <p class="page-indicator">{pageTitle}</p>
-      <span class="badge">Método Monte Carlo • {activeData.length} Escolas Analisadas</span>
+      <span class="badge">Método Monte Carlo • {currentPage === 6 ? '26' : activeData.length} Escolas Analisadas</span>
     </div>
   </header>
+
+  {#if currentPage !== 6}
 
   <section class="stats-overview">
     <div class="stat-card">
@@ -375,7 +725,7 @@
             <th>2º Bim</th>
             <th>3º Bim</th>
             <th>4º Bim</th>
-            <th>{currentPage === 1 ? 'Média' : currentPage === 2 ? 'Presença' : 'Uso'} MC</th>
+            <th>{metricLabel} MC</th>
             <th>IC 95%</th>
             <th>Ação</th>
           </tr>
@@ -390,11 +740,11 @@
               </td>
               <td class="school-name">{school.name}</td>
               <td><span class="badge-small {school.tipo === 'PEI' ? 'pei' : 'regular'}">{school.tipo}</span></td>
-              <td>{school.bimestres.b1.toFixed(2)}{currentPage === 2 ? '%' : ''}</td>
-              <td>{school.bimestres.b2.toFixed(2)}{currentPage === 2 ? '%' : ''}</td>
-              <td>{school.bimestres.b3.toFixed(2)}{currentPage === 2 ? '%' : ''}</td>
-              <td>{school.bimestres.b4.toFixed(2)}{currentPage === 2 ? '%' : ''}</td>
-              <td class="mean-value">{school.monteCarloMean.toFixed(4)}{currentPage === 2 ? '%' : ''}</td>
+              <td>{school.bimestres.b1.toFixed(2)}{usesPercentage ? '%' : ''}</td>
+              <td>{school.bimestres.b2.toFixed(2)}{usesPercentage ? '%' : ''}</td>
+              <td>{school.bimestres.b3.toFixed(2)}{usesPercentage ? '%' : ''}</td>
+              <td>{school.bimestres.b4.toFixed(2)}{usesPercentage ? '%' : ''}</td>
+              <td class="mean-value">{school.monteCarloMean.toFixed(4)}{usesPercentage ? '%' : ''}</td>
               <td class="confidence">[{school.confidenceInterval.lower.toFixed(2)} - {school.confidenceInterval.upper.toFixed(2)}]</td>
               <td>
                 <button class="show-calc-btn" on:click={() => showSchoolDetails(school)}>
@@ -421,10 +771,198 @@
       </div>
       <div class="method-card">
         <h3>📊 Intervalo de Confiança</h3>
-        <p>O intervalo de confiança de 95% indica que há 95% de probabilidade de que a verdadeira {currentPage === 1 ? 'média' : currentPage === 2 ? 'taxa de presença' : 'taxa de uso'} esteja dentro deste intervalo. Quanto menor o intervalo, maior a precisão da estimativa.</p>
+        <p>O intervalo de confiança de 95% indica que há 95% de probabilidade de que a verdadeira {currentPage === 1 ? 'média' : currentPage === 2 ? 'taxa de presença' : currentPage === 3 ? 'taxa de uso' : currentPage === 4 ? 'média de apoio' : 'taxa de conclusão'} esteja dentro deste intervalo. Quanto menor o intervalo, maior a precisão da estimativa.</p>
       </div>
     </div>
   </section>
+  {/if}
+
+  <!-- Página 6: Dashboard Individual -->
+  {#if currentPage === 6}
+  <section class="dashboard-section">
+    <h2>🏫 Selecione uma Escola para Análise Individual</h2>
+    <div class="school-selector">
+      <select on:change={(e) => selectSchoolForDashboard(e.target.value)}>
+        <option value="">Selecione uma escola...</option>
+        {#each allSchoolsData as school}
+          <option value={school.name} selected={selectedSchoolDashboard?.name === school.name}>{school.name}</option>
+        {/each}
+      </select>
+    </div>
+    
+    {#if selectedSchoolDashboard}
+    <div class="school-header">
+      <h3>{selectedSchoolDashboard.name}</h3>
+      <div class="school-info">
+        <span class="badge-info">{selectedSchoolDashboard.tipo}</span>
+        <span class="badge-info">{selectedSchoolDashboard.turno}</span>
+        <span class="badge-info">{selectedSchoolDashboard.alunos} alunos</span>
+      </div>
+    </div>
+    
+    <!-- Resumo dos 5 Indicadores -->
+    <div class="indicators-summary">
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.superBI}>
+        <span class="indicator-icon">📊</span>
+        <div class="indicator-info">
+          <span class="indicator-name">SUPER BI</span>
+          {#if selectedSchoolDashboard.superBI}
+            <span class="indicator-value">{selectedSchoolDashboard.superBI.monteCarloMean.toFixed(2)}</span>
+            <span class="indicator-scale">escala 0-10</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.alunoPresente}>
+        <span class="indicator-icon">👥</span>
+        <div class="indicator-info">
+          <span class="indicator-name">Aluno Presente</span>
+          {#if selectedSchoolDashboard.alunoPresente}
+            <span class="indicator-value">{selectedSchoolDashboard.alunoPresente.monteCarloMean.toFixed(2)}%</span>
+            <span class="indicator-scale">presença</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.biPlataformas}>
+        <span class="indicator-icon">💻</span>
+        <div class="indicator-info">
+          <span class="indicator-name">BI Plataformas</span>
+          {#if selectedSchoolDashboard.biPlataformas}
+            <span class="indicator-value">{selectedSchoolDashboard.biPlataformas.monteCarloMean.toFixed(2)}%</span>
+            <span class="indicator-scale">uso plataformas</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.apoioPresencial}>
+        <span class="indicator-icon">🤝</span>
+        <div class="indicator-info">
+          <span class="indicator-name">Apoio Presencial</span>
+          {#if selectedSchoolDashboard.apoioPresencial}
+            <span class="indicator-value">{selectedSchoolDashboard.apoioPresencial.monteCarloMean.toFixed(2)}</span>
+            <span class="indicator-scale">média apoio</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.tarefas}>
+        <span class="indicator-icon">📝</span>
+        <div class="indicator-info">
+          <span class="indicator-name">Tarefas</span>
+          {#if selectedSchoolDashboard.tarefas}
+            <span class="indicator-value">{selectedSchoolDashboard.tarefas.monteCarloMean.toFixed(2)}%</span>
+            <span class="indicator-scale">conclusão</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="dashboard-charts">
+      <div class="chart-wrapper radar">
+        <canvas bind:this={radarChartCanvas}></canvas>
+      </div>
+      <div class="chart-wrapper evolution">
+        <canvas bind:this={evolutionChartCanvas}></canvas>
+      </div>
+    </div>
+    
+    <div class="dashboard-charts single">
+      <div class="chart-wrapper comparison">
+        <canvas bind:this={comparisonChartCanvas}></canvas>
+      </div>
+    </div>
+    
+    <!-- Tabela Detalhada por Bimestre -->
+    <div class="detail-tables">
+      <h3>📋 Dados Detalhados por Bimestre</h3>
+      <div class="table-container">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>Indicador</th>
+              <th>1º Bim</th>
+              <th>2º Bim</th>
+              <th>3º Bim</th>
+              <th>4º Bim</th>
+              <th>Média MC</th>
+              <th>IC 95%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#if selectedSchoolDashboard.superBI}
+            <tr>
+              <td>📊 SUPER BI</td>
+              <td>{selectedSchoolDashboard.superBI.bimestres.b1.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.superBI.bimestres.b2.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.superBI.bimestres.b3.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.superBI.bimestres.b4.toFixed(2)}</td>
+              <td class="highlight">{selectedSchoolDashboard.superBI.monteCarloMean.toFixed(4)}</td>
+              <td>[{selectedSchoolDashboard.superBI.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.superBI.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.alunoPresente}
+            <tr>
+              <td>👥 Aluno Presente</td>
+              <td>{selectedSchoolDashboard.alunoPresente.bimestres.b1.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.alunoPresente.bimestres.b2.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.alunoPresente.bimestres.b3.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.alunoPresente.bimestres.b4.toFixed(2)}%</td>
+              <td class="highlight">{selectedSchoolDashboard.alunoPresente.monteCarloMean.toFixed(4)}%</td>
+              <td>[{selectedSchoolDashboard.alunoPresente.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.alunoPresente.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.biPlataformas}
+            <tr>
+              <td>💻 BI Plataformas</td>
+              <td>{selectedSchoolDashboard.biPlataformas.bimestres.b1.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biPlataformas.bimestres.b2.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biPlataformas.bimestres.b3.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biPlataformas.bimestres.b4.toFixed(2)}%</td>
+              <td class="highlight">{selectedSchoolDashboard.biPlataformas.monteCarloMean.toFixed(4)}%</td>
+              <td>[{selectedSchoolDashboard.biPlataformas.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.biPlataformas.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.apoioPresencial}
+            <tr>
+              <td>🤝 Apoio Presencial</td>
+              <td>{selectedSchoolDashboard.apoioPresencial.bimestres.b1.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.apoioPresencial.bimestres.b2.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.apoioPresencial.bimestres.b3.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.apoioPresencial.bimestres.b4.toFixed(2)}</td>
+              <td class="highlight">{selectedSchoolDashboard.apoioPresencial.monteCarloMean.toFixed(4)}</td>
+              <td>[{selectedSchoolDashboard.apoioPresencial.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.apoioPresencial.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.tarefas}
+            <tr>
+              <td>📝 Tarefas</td>
+              <td>{selectedSchoolDashboard.tarefas.bimestres.b1.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.tarefas.bimestres.b2.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.tarefas.bimestres.b3.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.tarefas.bimestres.b4.toFixed(2)}%</td>
+              <td class="highlight">{selectedSchoolDashboard.tarefas.monteCarloMean.toFixed(4)}%</td>
+              <td>[{selectedSchoolDashboard.tarefas.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.tarefas.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {/if}
+  </section>
+  {/if}
 
   {#if showCalculation && selectedSchool}
     <div class="modal-overlay" on:click={closeModal} on:keydown={(e) => e.key === 'Escape' && closeModal()} role="button" tabindex="0">
@@ -435,23 +973,23 @@
         
         <div class="calc-details">
           <div class="calc-section">
-            <h4>📥 Dados de Entrada ({currentPage === 1 ? 'Médias' : currentPage === 2 ? 'Presença %' : 'Uso Plataformas'} Bimestrais)</h4>
+            <h4>📥 Dados de Entrada ({metricLabel}{usesPercentage ? ' %' : ''} Bimestrais)</h4>
             <div class="data-grid">
               <div class="data-item">
                 <span class="label">1º Bimestre:</span>
-                <span class="value">{selectedSchool.bimestres.b1}{currentPage === 2 ? '%' : ''}</span>
+                <span class="value">{selectedSchool.bimestres.b1}{usesPercentage ? '%' : ''}</span>
               </div>
               <div class="data-item">
                 <span class="label">2º Bimestre:</span>
-                <span class="value">{selectedSchool.bimestres.b2}{currentPage === 2 ? '%' : ''}</span>
+                <span class="value">{selectedSchool.bimestres.b2}{usesPercentage ? '%' : ''}</span>
               </div>
               <div class="data-item">
                 <span class="label">3º Bimestre:</span>
-                <span class="value">{selectedSchool.bimestres.b3.toFixed(2)}{currentPage === 2 ? '%' : ''}</span>
+                <span class="value">{selectedSchool.bimestres.b3.toFixed(2)}{usesPercentage ? '%' : ''}</span>
               </div>
               <div class="data-item">
                 <span class="label">4º Bimestre:</span>
-                <span class="value">{selectedSchool.bimestres.b4}{currentPage === 2 ? '%' : ''}</span>
+                <span class="value">{selectedSchool.bimestres.b4}{usesPercentage ? '%' : ''}</span>
               </div>
             </div>
           </div>
@@ -461,7 +999,7 @@
             <div class="formula">
               <code>Média = (B1 + B2 + B3 + B4) / 4</code>
               <code>Média = ({selectedSchool.bimestres.b1} + {selectedSchool.bimestres.b2} + {selectedSchool.bimestres.b3.toFixed(2)} + {selectedSchool.bimestres.b4}) / 4</code>
-              <code class="result">Média Simples = {selectedSchool.simpleMean.toFixed(4)}{currentPage === 2 ? '%' : ''}</code>
+              <code class="result">Média Simples = {selectedSchool.simpleMean.toFixed(4)}{usesPercentage ? '%' : ''}</code>
             </div>
           </div>
 
@@ -473,7 +1011,7 @@
                 <ul>
                   <li>Gera valores aleatórios usando distribuição normal (Box-Muller)</li>
                   <li>Centro: valor do bimestre | Desvio: 5% do σ dos bimestres</li>
-                  <li>Limita valores entre 0 e {currentPage === 2 ? '100' : '10'}</li>
+                  <li>Limita valores entre 0 e {maxScale}</li>
                   <li>Calcula média dos 4 valores simulados</li>
                 </ul>
               </li>
@@ -485,12 +1023,12 @@
             <h4>📊 Resultados</h4>
             <div class="results-grid">
               <div class="result-item">
-                <span class="label">{currentPage === 1 ? 'Média' : currentPage === 2 ? 'Presença' : 'Uso'} Simples:</span>
-                <span class="value">{selectedSchool.simpleMean.toFixed(4)}{currentPage === 2 ? '%' : ''}</span>
+                <span class="label">{metricLabel} Simples:</span>
+                <span class="value">{selectedSchool.simpleMean.toFixed(4)}{usesPercentage ? '%' : ''}</span>
               </div>
               <div class="result-item highlight">
-                <span class="label">{currentPage === 1 ? 'Média' : currentPage === 2 ? 'Presença' : 'Uso'} Monte Carlo:</span>
-                <span class="value">{selectedSchool.monteCarloMean.toFixed(4)}{currentPage === 2 ? '%' : ''}</span>
+                <span class="label">{metricLabel} Monte Carlo:</span>
+                <span class="value">{selectedSchool.monteCarloMean.toFixed(4)}{usesPercentage ? '%' : ''}</span>
               </div>
               <div class="result-item">
                 <span class="label">Desvio Padrão (Bimestres):</span>
@@ -516,7 +1054,7 @@
             <p>
               O erro de convergência de <strong>{selectedSchool.convergenceError.toFixed(6)}</strong> demonstra que 
               {selectedSchool.iterations.toLocaleString()} iterações são suficientes para uma estimativa precisa.
-              A diferença mínima entre a {currentPage === 1 ? 'média' : currentPage === 2 ? 'presença' : 'uso'} simples e Monte Carlo confirma a consistência do cálculo.
+              A diferença mínima entre a {metricLabel.toLowerCase()} simples e Monte Carlo confirma a consistência do cálculo.
             </p>
           </div>
         </div>
@@ -1009,6 +1547,225 @@
     font-size: 0.85rem;
   }
 
+  /* Estilos para páginas 4, 5 e 6 */
+  header.page4 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    box-shadow: 0 10px 40px rgba(240, 147, 251, 0.3);
+  }
+
+  header.page5 {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+  }
+
+  header.page6 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  }
+
+  .nav-btn.dashboard-btn {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(240, 147, 251, 0.3) 100%);
+    border-color: #667eea;
+  }
+
+  .nav-btn.dashboard-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border-color: transparent;
+    box-shadow: 0 5px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  /* Dashboard Individual - Página 6 */
+  .dashboard-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .school-selector {
+    margin: 20px 0;
+  }
+
+  .school-selector select {
+    width: 100%;
+    max-width: 500px;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+  }
+
+  .school-selector select option {
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  .school-header {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border-radius: 15px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+  }
+
+  .school-header h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  .school-info {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+
+  .badge-info {
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    font-size: 0.9rem;
+  }
+
+  .indicators-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+
+  .indicator-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+  }
+
+  .indicator-card.has-data {
+    opacity: 1;
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+
+  .indicator-card.has-data:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+  }
+
+  .indicator-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .indicator-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .indicator-name {
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  .indicator-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #667eea;
+  }
+
+  .indicator-scale {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+
+  .indicator-na {
+    color: #999;
+    font-style: italic;
+  }
+
+  .dashboard-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-charts.single {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-wrapper {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    min-height: 350px;
+  }
+
+  .chart-wrapper.radar {
+    min-height: 400px;
+  }
+
+  .chart-wrapper.evolution {
+    min-height: 350px;
+  }
+
+  .chart-wrapper.comparison {
+    min-height: 350px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .detail-tables {
+    margin-top: 30px;
+  }
+
+  .detail-tables h3 {
+    margin-bottom: 20px;
+  }
+
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+  .detail-table th,
+  .detail-table td {
+    padding: 12px 15px;
+    text-align: center;
+    color: #333;
+    border-bottom: 1px solid #eee;
+  }
+
+  .detail-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .detail-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .detail-table td.highlight {
+    font-weight: 700;
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+  }
+
   @media (max-width: 768px) {
     h1 {
       font-size: 1.8rem;
@@ -1019,8 +1776,8 @@
     }
 
     .nav-btn {
-      padding: 12px 20px;
-      font-size: 0.95rem;
+      padding: 10px 15px;
+      font-size: 0.85rem;
     }
 
     .chart-container.annual-chart {
@@ -1034,6 +1791,22 @@
 
     .school-name {
       max-width: 150px;
+    }
+
+    .dashboard-charts {
+      grid-template-columns: 1fr;
+    }
+
+    .indicators-summary {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .indicator-card {
+      padding: 15px;
+    }
+
+    .indicator-value {
+      font-size: 1.2rem;
     }
   }
 </style>
