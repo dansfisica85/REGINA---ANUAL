@@ -292,20 +292,24 @@
     currentPage = page;
     selectedBimestre = 'all';
     
-    if (page === 6) {
-      prepareAllSchoolsData();
-      setTimeout(() => {
-        if (!selectedSchoolDashboard && allSchoolsData.length > 0) {
-          selectSchoolForDashboard(allSchoolsData[0].name);
-        }
-      }, 50);
-    } else {
-      processData();
-      setTimeout(() => {
-        createAnnualChart();
-        createBimestreChart();
-      }, 50);
-    }
+    // Usar requestAnimationFrame para liberar a thread principal
+    // e evitar bloqueio da UI durante processamento pesado
+    requestAnimationFrame(() => {
+      if (page === 6) {
+        prepareAllSchoolsData();
+        setTimeout(() => {
+          if (!selectedSchoolDashboard && allSchoolsData.length > 0) {
+            selectSchoolForDashboard(allSchoolsData[0].name);
+          }
+        }, 50);
+      } else {
+        processData();
+        setTimeout(() => {
+          createAnnualChart();
+          createBimestreChart();
+        }, 50);
+      }
+    });
   }
 
   function prepareAllSchoolsData() {
