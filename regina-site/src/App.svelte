@@ -382,8 +382,8 @@
       school.biRedacao ? school.biRedacao.monteCarloMean : 0,
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
       school.alura ? normalize(school.alura.monteCarloMean, 10) : 0,
-      school.matific ? school.matific.monteCarloMean : 0,
-      school.speak ? school.speak.monteCarloMean : 0
+      school.matific ? normalize(school.matific.monteCarloMean, 10) : 0,
+      school.speak ? normalize(school.speak.monteCarloMean, 10) : 0
     ];
     
     radarChart = new Chart(ctx, {
@@ -517,9 +517,9 @@
     }
     if (school.matific) {
       datasets.push({
-        label: 'Matific (%)',
-        data: [school.matific.bimestres.b1, school.matific.bimestres.b2, 
-               school.matific.bimestres.b3, school.matific.bimestres.b4],
+        label: 'Matific (x10)',
+        data: [school.matific.bimestres.b1 * 10, school.matific.bimestres.b2 * 10, 
+               school.matific.bimestres.b3 * 10, school.matific.bimestres.b4 * 10],
         borderColor: '#E74C3C',
         backgroundColor: 'rgba(231, 76, 60, 0.1)',
         tension: 0.3
@@ -527,9 +527,9 @@
     }
     if (school.speak) {
       datasets.push({
-        label: 'Speak (%)',
-        data: [school.speak.bimestres.b1, school.speak.bimestres.b2, 
-               school.speak.bimestres.b3, school.speak.bimestres.b4],
+        label: 'Speak (x10)',
+        data: [school.speak.bimestres.b1 * 10, school.speak.bimestres.b2 * 10, 
+               school.speak.bimestres.b3 * 10, school.speak.bimestres.b4 * 10],
         borderColor: '#3498DB',
         backgroundColor: 'rgba(52, 152, 219, 0.1)',
         tension: 0.3
@@ -593,8 +593,8 @@
       school.tarefas ? school.tarefas.monteCarloMean : 0,
       school.biRedacao ? school.biRedacao.monteCarloMean : 0,
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
-      school.matific ? school.matific.monteCarloMean : 0,
-      school.speak ? school.speak.monteCarloMean : 0
+      school.matific ? school.matific.monteCarloMean * 10 : 0,
+      school.speak ? school.speak.monteCarloMean * 10 : 0
     ];
     
     const avgData = [
@@ -605,8 +605,8 @@
       avgTarefas,
       avgBiRedacao,
       avgKhanAcademy,
-      avgMatific,
-      avgSpeak
+      avgMatific * 10,
+      avgSpeak * 10
     ];
     
     comparisonChart = new Chart(ctx, {
