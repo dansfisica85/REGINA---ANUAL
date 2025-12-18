@@ -8,6 +8,7 @@
   import { tarefasData, bimestreNames as bimestreNamesTar } from './data/tarefas.js';
   import { biRedacaoData, bimestreNames as bimestreNamesRed } from './data/biRedacao.js';
   import { khanAcademyData, bimestreNames as bimestreNamesKhan } from './data/khanAcademy.js';
+  import { aluraData, bimestreNames as bimestreNamesAlura } from './data/alura.js';
   import MonteCarloCalculator from './lib/monteCarlo.js';
 
   // Navegação
@@ -57,7 +58,8 @@
                   currentPage === 4 ? apoioPresencialData : 
                   currentPage === 5 ? tarefasData :
                   currentPage === 7 ? biRedacaoData :
-                  currentPage === 8 ? khanAcademyData : schoolsData;
+                  currentPage === 8 ? khanAcademyData :
+                  currentPage === 9 ? aluraData : schoolsData;
   
   $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : 
                  currentPage === 2 ? 'Aluno Presente' : 
@@ -65,7 +67,8 @@
                  currentPage === 4 ? 'Apoio Presencial' : 
                  currentPage === 5 ? 'Tarefas' :
                  currentPage === 7 ? 'BI Redação' :
-                 currentPage === 8 ? 'Khan Academy' : 'Dashboard Individual';
+                 currentPage === 8 ? 'Khan Academy' :
+                 currentPage === 9 ? 'Alura' : 'Dashboard Individual';
   
   $: pageIcon = currentPage === 1 ? '📊' : 
                 currentPage === 2 ? '👥' : 
@@ -73,10 +76,12 @@
                 currentPage === 4 ? '🤝' : 
                 currentPage === 5 ? '📝' :
                 currentPage === 7 ? '✍️' :
-                currentPage === 8 ? '🎓' : '🏫';
+                currentPage === 8 ? '🎓' :
+                currentPage === 9 ? '🖥️' : '🏫';
   
   $: maxScale = currentPage === 1 ? 10 : 
-                currentPage === 4 ? 20 : 100;
+                currentPage === 4 ? 20 :
+                currentPage === 9 ? 10 : 100;
   
   $: unitLabel = currentPage === 1 ? 'Média (0-10)' : 
                  currentPage === 2 ? 'Presença (%)' : 
@@ -84,9 +89,11 @@
                  currentPage === 4 ? 'Apoio Presencial (média)' : 
                  currentPage === 5 ? 'Conclusão Tarefas (%)' :
                  currentPage === 7 ? 'Índice Redação (%)' :
-                 currentPage === 8 ? 'Uso Khan Academy (%)' : '';
+                 currentPage === 8 ? 'Uso Khan Academy (%)' :
+                 currentPage === 9 ? 'Uso Alura (média)' : '';
 
   // Função para determinar se a página atual usa porcentagem
+  // Página 9 (Alura) usa média como página 1, não porcentagem
   $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5 || currentPage === 7 || currentPage === 8;
   
   // Labels específicos por página
@@ -96,7 +103,8 @@
                    currentPage === 4 ? 'Apoio' : 
                    currentPage === 5 ? 'Tarefas' :
                    currentPage === 7 ? 'Redação' :
-                   currentPage === 8 ? 'Khan' : 'Valor';
+                   currentPage === 8 ? 'Khan' :
+                   currentPage === 9 ? 'Alura' : 'Valor';
 
   function processData() {
     calculator.clearLog();
@@ -289,7 +297,7 @@
     // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
     const schoolNames = new Set();
     
-    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData].forEach(dataset => {
+    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData, aluraData].forEach(dataset => {
       dataset.forEach(school => schoolNames.add(school.name));
     });
     
@@ -301,6 +309,7 @@
       const tarefas = tarefasData.find(s => s.name === name);
       const biRedacao = biRedacaoData.find(s => s.name === name);
       const khanAcademy = khanAcademyData.find(s => s.name === name);
+      const alura = aluraData.find(s => s.name === name);
       
       // Calcular médias MC para cada indicador
       const calcMedia = (school, maxVal) => {
@@ -320,7 +329,8 @@
         apoioPresencial: apoioPresencial ? { ...apoioPresencial, ...calcMedia(apoioPresencial, 20) } : null,
         tarefas: tarefas ? { ...tarefas, ...calcMedia(tarefas, 100) } : null,
         biRedacao: biRedacao ? { ...biRedacao, ...calcMedia(biRedacao, 100) } : null,
-        khanAcademy: khanAcademy ? { ...khanAcademy, ...calcMedia(khanAcademy, 100) } : null
+        khanAcademy: khanAcademy ? { ...khanAcademy, ...calcMedia(khanAcademy, 100) } : null,
+        alura: alura ? { ...alura, ...calcMedia(alura, 10) } : null
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -351,13 +361,14 @@
       school.apoioPresencial ? normalize(school.apoioPresencial.monteCarloMean, 15) : 0,
       school.tarefas ? school.tarefas.monteCarloMean : 0,
       school.biRedacao ? school.biRedacao.monteCarloMean : 0,
-      school.khanAcademy ? school.khanAcademy.monteCarloMean : 0
+      school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
+      school.alura ? normalize(school.alura.monteCarloMean, 10) : 0
     ];
     
     radarChart = new Chart(ctx, {
       type: 'radar',
       data: {
-        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy'],
+        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy', 'Alura'],
         datasets: [{
           label: school.name,
           data: data,
@@ -473,6 +484,16 @@
         tension: 0.3
       });
     }
+    if (school.alura) {
+      datasets.push({
+        label: 'Alura (x10)',
+        data: [school.alura.bimestres.b1 * 10, school.alura.bimestres.b2 * 10, 
+               school.alura.bimestres.b3 * 10, school.alura.bimestres.b4 * 10],
+        borderColor: '#9B59B6',
+        backgroundColor: 'rgba(155, 89, 182, 0.1)',
+        tension: 0.3
+      });
+    }
     
     evolutionChart = new Chart(ctx, {
       type: 'line',
@@ -556,8 +577,8 @@
           {
             label: 'Média Geral',
             data: avgData,
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-            borderColor: '#fff',
+            backgroundColor: 'rgba(34, 197, 94, 0.5)',
+            borderColor: '#22c55e',
             borderWidth: 2
           }
         ]
@@ -687,6 +708,13 @@
       🎓 Khan Academy
     </button>
     <button 
+      class="nav-btn" 
+      class:active={currentPage === 9} 
+      on:click={() => changePage(9)}
+    >
+      🖥️ Alura
+    </button>
+    <button 
       class="nav-btn dashboard-btn" 
       class:active={currentPage === 6} 
       on:click={() => changePage(6)}
@@ -699,7 +727,7 @@
     ⚠️ Clique 2X (duas vezes!) no botão escolhido para carregar a página!!!
   </div>
 
-  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8}>
+  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8} class:page9={currentPage === 9}>
     <div class="header-content">
       <h1>{pageIcon} Análise REGINA</h1>
       <p class="subtitle">Registros Educacionais Gerais e Índices Avaliativos</p>
@@ -721,15 +749,15 @@
     <div class="stat-card">
       <span class="stat-icon">📈</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 ? '%' : ''}</span>
-        <span class="stat-label">{currentPage === 1 ? 'Maior Média' : currentPage === 2 ? 'Maior Presença' : 'Maior Uso'}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 && currentPage !== 9 ? '%' : ''}</span>
+        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Maior Média' : currentPage === 2 ? 'Maior Presença' : 'Maior Uso'}</span>
       </div>
     </div>
     <div class="stat-card">
       <span class="stat-icon">📉</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 ? '%' : ''}</span>
-        <span class="stat-label">{currentPage === 1 ? 'Menor Média' : currentPage === 2 ? 'Menor Presença' : 'Menor Uso'}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 && currentPage !== 9 ? '%' : ''}</span>
+        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Menor Média' : currentPage === 2 ? 'Menor Presença' : 'Menor Uso'}</span>
       </div>
     </div>
     <div class="stat-card">
@@ -954,6 +982,19 @@
           {/if}
         </div>
       </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.alura}>
+        <span class="indicator-icon">🖥️</span>
+        <div class="indicator-info">
+          <span class="indicator-name">Alura</span>
+          {#if selectedSchoolDashboard.alura}
+            <span class="indicator-value">{selectedSchoolDashboard.alura.monteCarloMean.toFixed(2)}</span>
+            <span class="indicator-scale">uso Alura</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
     </div>
     
     <!-- Gráficos -->
@@ -1064,6 +1105,17 @@
               <td>{selectedSchoolDashboard.khanAcademy.bimestres.b4.toFixed(2)}%</td>
               <td class="highlight">{selectedSchoolDashboard.khanAcademy.monteCarloMean.toFixed(4)}%</td>
               <td>[{selectedSchoolDashboard.khanAcademy.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.khanAcademy.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.alura}
+            <tr>
+              <td>🖥️ Alura</td>
+              <td>{selectedSchoolDashboard.alura.bimestres.b1.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.alura.bimestres.b2.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.alura.bimestres.b3.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.alura.bimestres.b4.toFixed(2)}</td>
+              <td class="highlight">{selectedSchoolDashboard.alura.monteCarloMean.toFixed(4)}</td>
+              <td>[{selectedSchoolDashboard.alura.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.alura.confidenceInterval.upper.toFixed(2)}]</td>
             </tr>
             {/if}
           </tbody>
@@ -1686,6 +1738,11 @@
   header.page8 {
     background: linear-gradient(135deg, #14bf96 0%, #00695c 100%);
     box-shadow: 0 10px 40px rgba(20, 191, 150, 0.3);
+  }
+
+  header.page9 {
+    background: linear-gradient(135deg, #9B59B6 0%, #3498DB 100%);
+    box-shadow: 0 10px 40px rgba(155, 89, 182, 0.3);
   }
 
   .nav-btn.dashboard-btn {
