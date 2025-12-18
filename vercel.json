@@ -1,5 +1,5 @@
 {
   "buildCommand": "cd regina-site && npm install && npm run build",
   "outputDirectory": "regina-site/public",
-  "installCommand": "cd regina-site && npm install"
+  "framework": null
 }
