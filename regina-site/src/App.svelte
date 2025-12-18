@@ -90,8 +90,8 @@
   $: maxScale = currentPage === 1 ? 10 : 
                 currentPage === 4 ? 20 :
                 currentPage === 9 ? 10 :
-                currentPage === 10 ? 100 :
-                currentPage === 11 ? 100 : 100;
+                currentPage === 10 ? 10 :
+                currentPage === 11 ? 10 : 100;
   
   $: unitLabel = currentPage === 1 ? 'Média (0-10)' : 
                  currentPage === 2 ? 'Presença (%)' : 
@@ -101,12 +101,13 @@
                  currentPage === 7 ? 'Índice Redação (%)' :
                  currentPage === 8 ? 'Uso Khan Academy (%)' :
                  currentPage === 9 ? 'Uso Alura (média)' :
-                 currentPage === 10 ? 'Uso Matific (%)' :
-                 currentPage === 11 ? 'Uso Speak (%)' : '';
+                 currentPage === 10 ? 'Uso Matific (0-10)' :
+                 currentPage === 11 ? 'Uso Speak (0-10)' : '';
 
   // Função para determinar se a página atual usa porcentagem
   // Página 9 (Alura) usa média como página 1, não porcentagem
-  $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5 || currentPage === 7 || currentPage === 8 || currentPage === 10 || currentPage === 11;
+  // Páginas 10 (Matific) e 11 (Speak) usam escala 0-10, não porcentagem
+  $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5 || currentPage === 7 || currentPage === 8;
   
   // Labels específicos por página
   $: metricLabel = currentPage === 1 ? 'Média' : 
