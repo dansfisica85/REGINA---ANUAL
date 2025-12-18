@@ -6,6 +6,8 @@
   import { biPlataformasData, bimestreNames as bimestreNamesBP } from './data/biPlataformas.js';
   import { apoioPresencialData, bimestreNames as bimestreNamesAPres } from './data/apoioPresencial.js';
   import { tarefasData, bimestreNames as bimestreNamesTar } from './data/tarefas.js';
+  import { biRedacaoData, bimestreNames as bimestreNamesRed } from './data/biRedacao.js';
+  import { khanAcademyData, bimestreNames as bimestreNamesKhan } from './data/khanAcademy.js';
   import MonteCarloCalculator from './lib/monteCarlo.js';
 
   // Navegação
@@ -53,19 +55,25 @@
                   currentPage === 2 ? alunosPresenteData : 
                   currentPage === 3 ? biPlataformasData : 
                   currentPage === 4 ? apoioPresencialData : 
-                  currentPage === 5 ? tarefasData : schoolsData;
+                  currentPage === 5 ? tarefasData :
+                  currentPage === 7 ? biRedacaoData :
+                  currentPage === 8 ? khanAcademyData : schoolsData;
   
   $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : 
                  currentPage === 2 ? 'Aluno Presente' : 
                  currentPage === 3 ? 'BI Plataformas' : 
                  currentPage === 4 ? 'Apoio Presencial' : 
-                 currentPage === 5 ? 'Tarefas' : 'Dashboard Individual';
+                 currentPage === 5 ? 'Tarefas' :
+                 currentPage === 7 ? 'BI Redação' :
+                 currentPage === 8 ? 'Khan Academy' : 'Dashboard Individual';
   
   $: pageIcon = currentPage === 1 ? '📊' : 
                 currentPage === 2 ? '👥' : 
                 currentPage === 3 ? '💻' : 
                 currentPage === 4 ? '🤝' : 
-                currentPage === 5 ? '📝' : '🏫';
+                currentPage === 5 ? '📝' :
+                currentPage === 7 ? '✍️' :
+                currentPage === 8 ? '🎓' : '🏫';
   
   $: maxScale = currentPage === 1 ? 10 : 
                 currentPage === 4 ? 20 : 100;
@@ -74,17 +82,21 @@
                  currentPage === 2 ? 'Presença (%)' : 
                  currentPage === 3 ? 'Uso Plataformas (%)' : 
                  currentPage === 4 ? 'Apoio Presencial (média)' : 
-                 currentPage === 5 ? 'Conclusão Tarefas (%)' : '';
+                 currentPage === 5 ? 'Conclusão Tarefas (%)' :
+                 currentPage === 7 ? 'Índice Redação (%)' :
+                 currentPage === 8 ? 'Uso Khan Academy (%)' : '';
 
   // Função para determinar se a página atual usa porcentagem
-  $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5;
+  $: usesPercentage = currentPage === 2 || currentPage === 3 || currentPage === 5 || currentPage === 7 || currentPage === 8;
   
   // Labels específicos por página
   $: metricLabel = currentPage === 1 ? 'Média' : 
                    currentPage === 2 ? 'Presença' : 
                    currentPage === 3 ? 'Uso' : 
                    currentPage === 4 ? 'Apoio' : 
-                   currentPage === 5 ? 'Tarefas' : 'Valor';
+                   currentPage === 5 ? 'Tarefas' :
+                   currentPage === 7 ? 'Redação' :
+                   currentPage === 8 ? 'Khan' : 'Valor';
 
   function processData() {
     calculator.clearLog();
@@ -277,7 +289,7 @@
     // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
     const schoolNames = new Set();
     
-    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData].forEach(dataset => {
+    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData].forEach(dataset => {
       dataset.forEach(school => schoolNames.add(school.name));
     });
     
@@ -287,6 +299,8 @@
       const biPlataformas = biPlataformasData.find(s => s.name === name);
       const apoioPresencial = apoioPresencialData.find(s => s.name === name);
       const tarefas = tarefasData.find(s => s.name === name);
+      const biRedacao = biRedacaoData.find(s => s.name === name);
+      const khanAcademy = khanAcademyData.find(s => s.name === name);
       
       // Calcular médias MC para cada indicador
       const calcMedia = (school, maxVal) => {
@@ -304,7 +318,9 @@
         alunoPresente: alunoPresente ? { ...alunoPresente, ...calcMedia(alunoPresente, 100) } : null,
         biPlataformas: biPlataformas ? { ...biPlataformas, ...calcMedia(biPlataformas, 100) } : null,
         apoioPresencial: apoioPresencial ? { ...apoioPresencial, ...calcMedia(apoioPresencial, 20) } : null,
-        tarefas: tarefas ? { ...tarefas, ...calcMedia(tarefas, 100) } : null
+        tarefas: tarefas ? { ...tarefas, ...calcMedia(tarefas, 100) } : null,
+        biRedacao: biRedacao ? { ...biRedacao, ...calcMedia(biRedacao, 100) } : null,
+        khanAcademy: khanAcademy ? { ...khanAcademy, ...calcMedia(khanAcademy, 100) } : null
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -333,13 +349,15 @@
       school.alunoPresente ? school.alunoPresente.monteCarloMean : 0,
       school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
       school.apoioPresencial ? normalize(school.apoioPresencial.monteCarloMean, 15) : 0,
-      school.tarefas ? school.tarefas.monteCarloMean : 0
+      school.tarefas ? school.tarefas.monteCarloMean : 0,
+      school.biRedacao ? school.biRedacao.monteCarloMean : 0,
+      school.khanAcademy ? school.khanAcademy.monteCarloMean : 0
     ];
     
     radarChart = new Chart(ctx, {
       type: 'radar',
       data: {
-        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas'],
+        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy'],
         datasets: [{
           label: school.name,
           data: data,
@@ -435,6 +453,26 @@
         tension: 0.3
       });
     }
+    if (school.biRedacao) {
+      datasets.push({
+        label: 'BI Redação (%)',
+        data: [school.biRedacao.bimestres.b1, school.biRedacao.bimestres.b2, 
+               school.biRedacao.bimestres.b3, school.biRedacao.bimestres.b4],
+        borderColor: '#FF6B6B',
+        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+        tension: 0.3
+      });
+    }
+    if (school.khanAcademy) {
+      datasets.push({
+        label: 'Khan Academy (%)',
+        data: [school.khanAcademy.bimestres.b1, school.khanAcademy.bimestres.b2, 
+               school.khanAcademy.bimestres.b3, school.khanAcademy.bimestres.b4],
+        borderColor: '#14BF96',
+        backgroundColor: 'rgba(20, 191, 150, 0.1)',
+        tension: 0.3
+      });
+    }
     
     evolutionChart = new Chart(ctx, {
       type: 'line',
@@ -477,8 +515,10 @@
     const avgBiPlataformas = biPlataformasData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / biPlataformasData.length;
     const avgApoioPresencial = apoioPresencialData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / apoioPresencialData.length;
     const avgTarefas = tarefasData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / tarefasData.length;
+    const avgBiRedacao = biRedacaoData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / biRedacaoData.length;
+    const avgKhanAcademy = khanAcademyData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / khanAcademyData.length;
     
-    const labels = ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas'];
+    const labels = ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy'];
     
     // Normalizar para escala 0-100 para comparação justa
     const schoolData = [
@@ -486,7 +526,9 @@
       school.alunoPresente ? school.alunoPresente.monteCarloMean : 0,
       school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
       school.apoioPresencial ? (school.apoioPresencial.monteCarloMean / 15) * 100 : 0,
-      school.tarefas ? school.tarefas.monteCarloMean : 0
+      school.tarefas ? school.tarefas.monteCarloMean : 0,
+      school.biRedacao ? school.biRedacao.monteCarloMean : 0,
+      school.khanAcademy ? school.khanAcademy.monteCarloMean : 0
     ];
     
     const avgData = [
@@ -494,7 +536,9 @@
       avgAlunoPresente,
       avgBiPlataformas,
       (avgApoioPresencial / 15) * 100,
-      avgTarefas
+      avgTarefas,
+      avgBiRedacao,
+      avgKhanAcademy
     ];
     
     comparisonChart = new Chart(ctx, {
@@ -510,7 +554,7 @@
             borderWidth: 1
           },
           {
-            label: 'Média Geral (26 escolas)',
+            label: 'Média Geral',
             data: avgData,
             backgroundColor: 'rgba(255, 255, 255, 0.3)',
             borderColor: '#fff',
@@ -629,6 +673,20 @@
       📝 Tarefas
     </button>
     <button 
+      class="nav-btn" 
+      class:active={currentPage === 7} 
+      on:click={() => changePage(7)}
+    >
+      ✍️ BI Redação
+    </button>
+    <button 
+      class="nav-btn" 
+      class:active={currentPage === 8} 
+      on:click={() => changePage(8)}
+    >
+      🎓 Khan Academy
+    </button>
+    <button 
       class="nav-btn dashboard-btn" 
       class:active={currentPage === 6} 
       on:click={() => changePage(6)}
@@ -641,7 +699,7 @@
     ⚠️ Clique 2X (duas vezes!) no botão escolhido para carregar a página!!!
   </div>
 
-  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6}>
+  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8}>
     <div class="header-content">
       <h1>{pageIcon} Análise REGINA</h1>
       <p class="subtitle">Registros Educacionais Gerais e Índices Avaliativos</p>
@@ -804,7 +862,7 @@
       </div>
     </div>
     
-    <!-- Resumo dos 5 Indicadores -->
+    <!-- Resumo dos 7 Indicadores -->
     <div class="indicators-summary">
       <div class="indicator-card" class:has-data={selectedSchoolDashboard.superBI}>
         <span class="indicator-icon">📊</span>
@@ -865,6 +923,32 @@
           {#if selectedSchoolDashboard.tarefas}
             <span class="indicator-value">{selectedSchoolDashboard.tarefas.monteCarloMean.toFixed(2)}%</span>
             <span class="indicator-scale">conclusão</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.biRedacao}>
+        <span class="indicator-icon">✍️</span>
+        <div class="indicator-info">
+          <span class="indicator-name">BI Redação</span>
+          {#if selectedSchoolDashboard.biRedacao}
+            <span class="indicator-value">{selectedSchoolDashboard.biRedacao.monteCarloMean.toFixed(2)}%</span>
+            <span class="indicator-scale">índice redação</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.khanAcademy}>
+        <span class="indicator-icon">🎓</span>
+        <div class="indicator-info">
+          <span class="indicator-name">Khan Academy</span>
+          {#if selectedSchoolDashboard.khanAcademy}
+            <span class="indicator-value">{selectedSchoolDashboard.khanAcademy.monteCarloMean.toFixed(2)}%</span>
+            <span class="indicator-scale">uso Khan</span>
           {:else}
             <span class="indicator-na">Sem dados</span>
           {/if}
@@ -958,6 +1042,28 @@
               <td>{selectedSchoolDashboard.tarefas.bimestres.b4.toFixed(2)}%</td>
               <td class="highlight">{selectedSchoolDashboard.tarefas.monteCarloMean.toFixed(4)}%</td>
               <td>[{selectedSchoolDashboard.tarefas.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.tarefas.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.biRedacao}
+            <tr>
+              <td>✍️ BI Redação</td>
+              <td>{selectedSchoolDashboard.biRedacao.bimestres.b1.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biRedacao.bimestres.b2.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biRedacao.bimestres.b3.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.biRedacao.bimestres.b4.toFixed(2)}%</td>
+              <td class="highlight">{selectedSchoolDashboard.biRedacao.monteCarloMean.toFixed(4)}%</td>
+              <td>[{selectedSchoolDashboard.biRedacao.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.biRedacao.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.khanAcademy}
+            <tr>
+              <td>🎓 Khan Academy</td>
+              <td>{selectedSchoolDashboard.khanAcademy.bimestres.b1.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.khanAcademy.bimestres.b2.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.khanAcademy.bimestres.b3.toFixed(2)}%</td>
+              <td>{selectedSchoolDashboard.khanAcademy.bimestres.b4.toFixed(2)}%</td>
+              <td class="highlight">{selectedSchoolDashboard.khanAcademy.monteCarloMean.toFixed(4)}%</td>
+              <td>[{selectedSchoolDashboard.khanAcademy.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.khanAcademy.confidenceInterval.upper.toFixed(2)}]</td>
             </tr>
             {/if}
           </tbody>
@@ -1570,6 +1676,16 @@
   header.page6 {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  }
+
+  header.page7 {
+    background: linear-gradient(135deg, #e91e63 0%, #9c27b0 100%);
+    box-shadow: 0 10px 40px rgba(233, 30, 99, 0.3);
+  }
+
+  header.page8 {
+    background: linear-gradient(135deg, #14bf96 0%, #00695c 100%);
+    box-shadow: 0 10px 40px rgba(20, 191, 150, 0.3);
   }
 
   .nav-btn.dashboard-btn {
