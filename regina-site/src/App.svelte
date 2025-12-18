@@ -379,7 +379,7 @@
       school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
       school.apoioPresencial ? normalize(school.apoioPresencial.monteCarloMean, 15) : 0,
       school.tarefas ? school.tarefas.monteCarloMean : 0,
-      school.biRedacao ? school.biRedacao.monteCarloMean : 0,
+      school.biRedacao ? Math.min(school.biRedacao.monteCarloMean, 100) : 0,
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
       school.alura ? normalize(school.alura.monteCarloMean, 10) : 0,
       school.matific ? normalize(school.matific.monteCarloMean, 10) : 0,
@@ -488,8 +488,8 @@
     if (school.biRedacao) {
       datasets.push({
         label: 'BI Redação (%)',
-        data: [school.biRedacao.bimestres.b1, school.biRedacao.bimestres.b2, 
-               school.biRedacao.bimestres.b3, school.biRedacao.bimestres.b4],
+        data: [Math.min(school.biRedacao.bimestres.b1, 100), Math.min(school.biRedacao.bimestres.b2, 100), 
+               Math.min(school.biRedacao.bimestres.b3, 100), Math.min(school.biRedacao.bimestres.b4, 100)],
         borderColor: '#FF6B6B',
         backgroundColor: 'rgba(255, 107, 107, 0.1)',
         tension: 0.3
@@ -591,7 +591,7 @@
       school.biPlataformas ? school.biPlataformas.monteCarloMean : 0,
       school.apoioPresencial ? (school.apoioPresencial.monteCarloMean / 15) * 100 : 0,
       school.tarefas ? school.tarefas.monteCarloMean : 0,
-      school.biRedacao ? school.biRedacao.monteCarloMean : 0,
+      school.biRedacao ? Math.min(school.biRedacao.monteCarloMean, 100) : 0,
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
       school.matific ? school.matific.monteCarloMean * 10 : 0,
       school.speak ? school.speak.monteCarloMean * 10 : 0
@@ -603,7 +603,7 @@
       avgBiPlataformas,
       (avgApoioPresencial / 15) * 100,
       avgTarefas,
-      avgBiRedacao,
+      Math.min(avgBiRedacao, 100),
       avgKhanAcademy,
       avgMatific * 10,
       avgSpeak * 10
