@@ -577,8 +577,8 @@
           {
             label: 'Média Geral',
             data: avgData,
-            backgroundColor: 'rgba(34, 197, 94, 0.5)',
-            borderColor: '#22c55e',
+            backgroundColor: 'rgba(251, 146, 60, 0.6)',
+            borderColor: '#f97316',
             borderWidth: 2
           }
         ]
