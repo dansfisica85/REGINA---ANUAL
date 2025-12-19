@@ -42,7 +42,9 @@
   let selectedSchoolDashboard = null;
   let allSchoolsData = [];
   
-  const calculator = new MonteCarloCalculator(10000);
+  // Reduzido de 10000 para 2000 iterações para melhor performance
+  // ainda mantendo precisão estatística adequada
+  const calculator = new MonteCarloCalculator(2000);
 
   // Cores para o gráfico
   const colors = [
@@ -121,19 +123,50 @@
                    currentPage === 10 ? 'Matific' :
                    currentPage === 11 ? 'Speak' : 'Valor';
 
-  function processData() {
+  // Estado de carregamento para feedback visual
+  let isLoading = false;
+
+  // Função auxiliar para processar em chunks e não bloquear a UI
+  function processInChunks(items, processFn, chunkSize = 5) {
+    return new Promise((resolve) => {
+      const results = [];
+      let index = 0;
+      
+      function processChunk() {
+        const chunk = items.slice(index, index + chunkSize);
+        chunk.forEach(item => {
+          results.push(processFn(item));
+        });
+        index += chunkSize;
+        
+        if (index < items.length) {
+          // Usar setTimeout para liberar a thread principal
+          setTimeout(processChunk, 0);
+        } else {
+          resolve(results);
+        }
+      }
+      
+      processChunk();
+    });
+  }
+
+  async function processData() {
     calculator.clearLog();
     calculationResults = [];
     bimestreStats = [];
+    isLoading = true;
     
-    // Calcula média anual para cada escola usando Monte Carlo
-    activeData.forEach(school => {
+    // Processa escolas em chunks para não bloquear a UI
+    const results = await processInChunks(activeData, (school) => {
       const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxScale);
-      calculationResults.push({
+      return {
         ...school,
         ...result
-      });
-    });
+      };
+    }, 5);
+    
+    calculationResults = results;
 
     // Cria ranking ordenado pela média Monte Carlo
     ranking = [...calculationResults].sort((a, b) => b.monteCarloMean - a.monteCarloMean);
@@ -141,7 +174,7 @@
       item.position = index + 1;
     });
 
-    // Calcula estatísticas por bimestre
+    // Calcula estatísticas por bimestre (processamento mais leve)
     ['b1', 'b2', 'b3', 'b4'].forEach(bim => {
       const stats = calculator.calculateBimestreMonteCarlo(activeData, bim, maxScale);
       bimestreStats.push({
@@ -149,6 +182,8 @@
         name: bimestreNames[bim]
       });
     });
+    
+    isLoading = false;
   }
 
   function createAnnualChart() {
@@ -288,31 +323,32 @@
     });
   }
 
-  function changePage(page) {
+  async function changePage(page) {
+    // Atualiza a UI imediatamente para dar feedback visual
     currentPage = page;
     selectedBimestre = 'all';
+    isLoading = true;
     
-    // Usar requestAnimationFrame para liberar a thread principal
-    // e evitar bloqueio da UI durante processamento pesado
-    requestAnimationFrame(() => {
-      if (page === 6) {
-        prepareAllSchoolsData();
-        setTimeout(() => {
-          if (!selectedSchoolDashboard && allSchoolsData.length > 0) {
-            selectSchoolForDashboard(allSchoolsData[0].name);
-          }
-        }, 50);
-      } else {
-        processData();
-        setTimeout(() => {
-          createAnnualChart();
-          createBimestreChart();
-        }, 50);
+    // Libera a thread principal antes do processamento pesado
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    if (page === 6) {
+      await prepareAllSchoolsData();
+      if (!selectedSchoolDashboard && allSchoolsData.length > 0) {
+        selectSchoolForDashboard(allSchoolsData[0].name);
       }
-    });
+    } else {
+      await processData();
+      // Aguarda próximo frame para criar gráficos
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      createAnnualChart();
+      createBimestreChart();
+    }
+    
+    isLoading = false;
   }
 
-  function prepareAllSchoolsData() {
+  async function prepareAllSchoolsData() {
     // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
     const schoolNames = new Set();
     
@@ -320,7 +356,17 @@
       dataset.forEach(school => schoolNames.add(school.name));
     });
     
-    allSchoolsData = Array.from(schoolNames).map(name => {
+    const schoolNamesList = Array.from(schoolNames);
+    
+    // Calcular médias MC para cada indicador (função auxiliar)
+    const calcMedia = (school, maxVal) => {
+      if (!school) return null;
+      const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxVal);
+      return result;
+    };
+    
+    // Processa escolas em chunks para não bloquear a UI
+    const results = await processInChunks(schoolNamesList, (name) => {
       const superBI = schoolsData.find(s => s.name === name);
       const alunoPresente = alunosPresenteData.find(s => s.name === name);
       const biPlataformas = biPlataformasData.find(s => s.name === name);
@@ -331,13 +377,6 @@
       const alura = aluraData.find(s => s.name === name);
       const matific = matificData.find(s => s.name === name);
       const speak = speakData.find(s => s.name === name);
-      
-      // Calcular médias MC para cada indicador
-      const calcMedia = (school, maxVal) => {
-        if (!school) return null;
-        const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxVal);
-        return result;
-      };
       
       return {
         name,
@@ -355,7 +394,9 @@
         matific: matific ? { ...matific, ...calcMedia(matific, 100) } : null,
         speak: speak ? { ...speak, ...calcMedia(speak, 100) } : null
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }, 3); // Chunk menor porque cada escola processa 10 indicadores
+    
+    allSchoolsData = results.sort((a, b) => a.name.localeCompare(b.name));
   }
   
   function selectSchoolForDashboard(schoolName) {
@@ -682,10 +723,12 @@
     return `${position}º`;
   }
 
-  onMount(() => {
-    processData();
+  onMount(async () => {
+    isLoading = true;
+    await processData();
     createAnnualChart();
     createBimestreChart();
+    isLoading = false;
   });
 
   onDestroy(() => {
@@ -788,9 +831,11 @@
     </button>
   </nav>
 
-  <div class="warning-notice">
-    ⚠️ Clique 2X (duas vezes!) no botão escolhido para carregar a página!!!
+  {#if isLoading}
+  <div class="loading-notice">
+    ⏳ Carregando dados...
   </div>
+  {/if}
 
   <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8} class:page9={currentPage === 9} class:page10={currentPage === 10} class:page11={currentPage === 11}>
     <div class="header-content">
@@ -1879,18 +1924,18 @@
     box-shadow: 0 5px 25px rgba(102, 126, 234, 0.5);
   }
 
-  /* Aviso de duplo clique */
-  .warning-notice {
+  /* Indicador de carregamento */
+  .loading-notice {
     text-align: center;
     padding: 15px 20px;
     margin-bottom: 20px;
-    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 15px;
     font-weight: 700;
     font-size: 1.1rem;
-    color: #1a1a2e;
-    animation: pulse 2s infinite;
-    box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+    color: #ffffff;
+    animation: pulse 1s infinite;
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
   }
 
   @keyframes pulse {
