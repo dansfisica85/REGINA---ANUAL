@@ -177,6 +177,13 @@ export const biRedacaoData = [
     alunos: 645,
     bimestres: { b1: 72.0, b2: 70.7, b3: 79.1, b4: 60.0 }
   },
+  {
+    name: "EE Ferrucio Chiaratti",
+    tipo: "Regular",
+    turno: "3 T",
+    alunos: 902,
+    bimestres: { b1: 65.0, b2: 88.0, b3: 76.5, b4: 72.0 }
+  },
 ];
 
 export const bimestreNames = {
