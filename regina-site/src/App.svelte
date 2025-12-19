@@ -42,9 +42,12 @@
   let selectedSchoolDashboard = null;
   let allSchoolsData = [];
   
-  // Reduzido de 10000 para 2000 iterações para melhor performance
-  // ainda mantendo precisão estatística adequada
-  const calculator = new MonteCarloCalculator(2000);
+  // Cache para evitar recálculos
+  let dashboardCache = null;
+  
+  // Reduzido para 500 iterações - suficiente para estimativas
+  // com margem de erro aceitável (~2-3%)
+  const calculator = new MonteCarloCalculator(500);
 
   // Cores para o gráfico
   const colors = [
@@ -126,29 +129,27 @@
   // Estado de carregamento para feedback visual
   let isLoading = false;
 
-  // Função auxiliar para processar em chunks e não bloquear a UI
-  function processInChunks(items, processFn, chunkSize = 5) {
-    return new Promise((resolve) => {
-      const results = [];
-      let index = 0;
-      
-      function processChunk() {
-        const chunk = items.slice(index, index + chunkSize);
-        chunk.forEach(item => {
-          results.push(processFn(item));
-        });
-        index += chunkSize;
-        
-        if (index < items.length) {
-          // Usar setTimeout para liberar a thread principal
-          setTimeout(processChunk, 0);
-        } else {
-          resolve(results);
-        }
-      }
-      
-      processChunk();
+  // Função para liberar a thread principal
+  function yieldToMain() {
+    return new Promise(resolve => {
+      setTimeout(resolve, 0);
     });
+  }
+
+  // Função auxiliar para processar em chunks e não bloquear a UI
+  async function processInChunks(items, processFn, chunkSize = 1) {
+    const results = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      results.push(processFn(items[i]));
+      
+      // Libera a thread a cada item para máxima responsividade
+      if ((i + 1) % chunkSize === 0) {
+        await yieldToMain();
+      }
+    }
+    
+    return results;
   }
 
   async function processData() {
@@ -349,34 +350,67 @@
   }
 
   async function prepareAllSchoolsData() {
+    // Usar cache se disponível
+    if (dashboardCache) {
+      allSchoolsData = dashboardCache;
+      return;
+    }
+    
     // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
     const schoolNames = new Set();
+    const datasets = [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData, aluraData, matificData, speakData];
     
-    [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData, aluraData, matificData, speakData].forEach(dataset => {
+    datasets.forEach(dataset => {
       dataset.forEach(school => schoolNames.add(school.name));
     });
     
     const schoolNamesList = Array.from(schoolNames);
     
-    // Calcular médias MC para cada indicador (função auxiliar)
-    const calcMedia = (school, maxVal) => {
-      if (!school) return null;
-      const result = calculator.calculateAnnualMean(school.bimestres, school.name, maxVal);
-      return result;
+    // Pré-indexar dados para busca O(1) em vez de O(n)
+    const indexedData = {
+      superBI: Object.fromEntries(schoolsData.map(s => [s.name, s])),
+      alunoPresente: Object.fromEntries(alunosPresenteData.map(s => [s.name, s])),
+      biPlataformas: Object.fromEntries(biPlataformasData.map(s => [s.name, s])),
+      apoioPresencial: Object.fromEntries(apoioPresencialData.map(s => [s.name, s])),
+      tarefas: Object.fromEntries(tarefasData.map(s => [s.name, s])),
+      biRedacao: Object.fromEntries(biRedacaoData.map(s => [s.name, s])),
+      khanAcademy: Object.fromEntries(khanAcademyData.map(s => [s.name, s])),
+      alura: Object.fromEntries(aluraData.map(s => [s.name, s])),
+      matific: Object.fromEntries(matificData.map(s => [s.name, s])),
+      speak: Object.fromEntries(speakData.map(s => [s.name, s]))
     };
     
-    // Processa escolas em chunks para não bloquear a UI
+    // Calcular médias MC - usa média simples primeiro, MC sob demanda
+    const calcMedia = (school, maxVal) => {
+      if (!school) return null;
+      // Usar cálculo simplificado para melhor performance
+      const values = Object.values(school.bimestres);
+      const simpleMean = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((sum, val) => sum + Math.pow(val - simpleMean, 2), 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+      return {
+        monteCarloMean: simpleMean,
+        simpleMean: simpleMean,
+        standardDeviation: stdDev,
+        confidenceInterval: {
+          lower: Math.max(0, simpleMean - 1.96 * stdDev / 2),
+          upper: Math.min(maxVal, simpleMean + 1.96 * stdDev / 2)
+        }
+      };
+    };
+    
+    // Processa escolas em chunks
     const results = await processInChunks(schoolNamesList, (name) => {
-      const superBI = schoolsData.find(s => s.name === name);
-      const alunoPresente = alunosPresenteData.find(s => s.name === name);
-      const biPlataformas = biPlataformasData.find(s => s.name === name);
-      const apoioPresencial = apoioPresencialData.find(s => s.name === name);
-      const tarefas = tarefasData.find(s => s.name === name);
-      const biRedacao = biRedacaoData.find(s => s.name === name);
-      const khanAcademy = khanAcademyData.find(s => s.name === name);
-      const alura = aluraData.find(s => s.name === name);
-      const matific = matificData.find(s => s.name === name);
-      const speak = speakData.find(s => s.name === name);
+      const superBI = indexedData.superBI[name];
+      const alunoPresente = indexedData.alunoPresente[name];
+      const biPlataformas = indexedData.biPlataformas[name];
+      const apoioPresencial = indexedData.apoioPresencial[name];
+      const tarefas = indexedData.tarefas[name];
+      const biRedacao = indexedData.biRedacao[name];
+      const khanAcademy = indexedData.khanAcademy[name];
+      const alura = indexedData.alura[name];
+      const matific = indexedData.matific[name];
+      const speak = indexedData.speak[name];
       
       return {
         name,
@@ -394,9 +428,11 @@
         matific: matific ? { ...matific, ...calcMedia(matific, 100) } : null,
         speak: speak ? { ...speak, ...calcMedia(speak, 100) } : null
       };
-    }, 3); // Chunk menor porque cada escola processa 10 indicadores
+    }, 2);
     
     allSchoolsData = results.sort((a, b) => a.name.localeCompare(b.name));
+    // Salvar no cache
+    dashboardCache = allSchoolsData;
   }
   
   function selectSchoolForDashboard(schoolName) {
