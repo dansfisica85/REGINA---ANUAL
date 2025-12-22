@@ -365,7 +365,7 @@
     
     // Cria uma lista consolidada de todas as escolas com dados de todas as planilhas
     const schoolNames = new Set();
-    const datasets = [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData, aluraData, matificData, speakData];
+    const datasets = [schoolsData, alunosPresenteData, biPlataformasData, apoioPresencialData, tarefasData, biRedacaoData, khanAcademyData, aluraData, matificData, speakData, leiaData];
     
     datasets.forEach(dataset => {
       dataset.forEach(school => schoolNames.add(school.name));
@@ -384,7 +384,8 @@
       khanAcademy: Object.fromEntries(khanAcademyData.map(s => [s.name, s])),
       alura: Object.fromEntries(aluraData.map(s => [s.name, s])),
       matific: Object.fromEntries(matificData.map(s => [s.name, s])),
-      speak: Object.fromEntries(speakData.map(s => [s.name, s]))
+      speak: Object.fromEntries(speakData.map(s => [s.name, s])),
+      leia: Object.fromEntries(leiaData.map(s => [s.name, s]))
     };
     
     // Calcular médias MC - usa média simples primeiro, MC sob demanda
@@ -418,6 +419,7 @@
       const alura = indexedData.alura[name];
       const matific = indexedData.matific[name];
       const speak = indexedData.speak[name];
+      const leia = indexedData.leia[name];
       
       return {
         name,
@@ -433,7 +435,8 @@
         khanAcademy: khanAcademy ? { ...khanAcademy, ...calcMedia(khanAcademy, 100) } : null,
         alura: alura ? { ...alura, ...calcMedia(alura, 10) } : null,
         matific: matific ? { ...matific, ...calcMedia(matific, 100) } : null,
-        speak: speak ? { ...speak, ...calcMedia(speak, 100) } : null
+        speak: speak ? { ...speak, ...calcMedia(speak, 100) } : null,
+        leia: leia ? { ...leia, ...calcMedia(leia, 250) } : null
       };
     }, 2);
     
@@ -887,7 +890,7 @@
   </div>
   {/if}
 
-  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8} class:page9={currentPage === 9} class:page10={currentPage === 10} class:page11={currentPage === 11}>
+  <header class:page2={currentPage === 2} class:page3={currentPage === 3} class:page4={currentPage === 4} class:page5={currentPage === 5} class:page6={currentPage === 6} class:page7={currentPage === 7} class:page8={currentPage === 8} class:page9={currentPage === 9} class:page10={currentPage === 10} class:page11={currentPage === 11} class:page12={currentPage === 12}>
     <div class="header-content">
       <h1>{pageIcon} Análise REGINA</h1>
       <p class="subtitle">Registros Educacionais Gerais e Índices Avaliativos</p>
@@ -1961,6 +1964,11 @@
   header.page11 {
     background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
     box-shadow: 0 10px 40px rgba(52, 152, 219, 0.3);
+  }
+
+  header.page12 {
+    background: linear-gradient(135deg, #8E44AD 0%, #9B59B6 100%);
+    box-shadow: 0 10px 40px rgba(142, 68, 173, 0.3);
   }
 
   .nav-btn.dashboard-btn {
