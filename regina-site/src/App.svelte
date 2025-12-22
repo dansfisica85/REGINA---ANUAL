@@ -474,13 +474,14 @@
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
       school.alura ? normalize(school.alura.monteCarloMean, 10) : 0,
       school.matific ? normalize(school.matific.monteCarloMean, 10) : 0,
-      school.speak ? normalize(school.speak.monteCarloMean, 10) : 0
+      school.speak ? normalize(school.speak.monteCarloMean, 10) : 0,
+      school.leia ? normalize(school.leia.monteCarloMean, 200) : 0
     ];
     
     radarChart = new Chart(ctx, {
       type: 'radar',
       data: {
-        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy', 'Alura', 'Matific', 'Speak'],
+        labels: ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy', 'Alura', 'Matific', 'Speak', 'LEIA'],
         datasets: [{
           label: school.name,
           data: data,
