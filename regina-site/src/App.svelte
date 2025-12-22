@@ -11,6 +11,7 @@
   import { aluraData, bimestreNames as bimestreNamesAlura } from './data/alura.js';
   import { matificData, bimestreNames as bimestreNamesMatific } from './data/matific.js';
   import { speakData, bimestreNames as bimestreNamesSpeak } from './data/speak.js';
+  import { leiaData, bimestreNames as bimestreNamesLeia } from './data/leia.js';
   import MonteCarloCalculator from './lib/monteCarlo.js';
 
   // Navegação
@@ -68,7 +69,8 @@
                   currentPage === 8 ? khanAcademyData :
                   currentPage === 9 ? aluraData :
                   currentPage === 10 ? matificData :
-                  currentPage === 11 ? speakData : schoolsData;
+                  currentPage === 11 ? speakData :
+                  currentPage === 12 ? leiaData : schoolsData;
   
   $: pageTitle = currentPage === 1 ? 'Plataforma SUPER BI' : 
                  currentPage === 2 ? 'Aluno Presente' : 
@@ -79,7 +81,8 @@
                  currentPage === 8 ? 'Khan Academy' :
                  currentPage === 9 ? 'Alura' :
                  currentPage === 10 ? 'Matific' :
-                 currentPage === 11 ? 'Speak' : 'Dashboard Individual';
+                 currentPage === 11 ? 'Speak' :
+                 currentPage === 12 ? 'LEIA' : 'Dashboard Individual';
   
   $: pageIcon = currentPage === 1 ? '📊' : 
                 currentPage === 2 ? '👥' : 
@@ -90,13 +93,15 @@
                 currentPage === 8 ? '🎓' :
                 currentPage === 9 ? '🖥️' :
                 currentPage === 10 ? '🔢' :
-                currentPage === 11 ? '🗣️' : '🏫';
+                currentPage === 11 ? '🗣️' :
+                currentPage === 12 ? '📚' : '🏫';
   
   $: maxScale = currentPage === 1 ? 10 : 
                 currentPage === 4 ? 20 :
                 currentPage === 9 ? 10 :
                 currentPage === 10 ? 10 :
-                currentPage === 11 ? 10 : 100;
+                currentPage === 11 ? 10 :
+                currentPage === 12 ? 250 : 100;
   
   $: unitLabel = currentPage === 1 ? 'Média (0-10)' : 
                  currentPage === 2 ? 'Presença (%)' : 
@@ -107,7 +112,8 @@
                  currentPage === 8 ? 'Uso Khan Academy (%)' :
                  currentPage === 9 ? 'Uso Alura (média)' :
                  currentPage === 10 ? 'Uso Matific (0-10)' :
-                 currentPage === 11 ? 'Uso Speak (0-10)' : '';
+                 currentPage === 11 ? 'Uso Speak (0-10)' :
+                 currentPage === 12 ? 'Índice LEIA' : '';
 
   // Função para determinar se a página atual usa porcentagem
   // Página 9 (Alura) usa média como página 1, não porcentagem
@@ -124,7 +130,8 @@
                    currentPage === 8 ? 'Khan' :
                    currentPage === 9 ? 'Alura' :
                    currentPage === 10 ? 'Matific' :
-                   currentPage === 11 ? 'Speak' : 'Valor';
+                   currentPage === 11 ? 'Speak' :
+                   currentPage === 12 ? 'LEIA' : 'Valor';
 
   // Estado de carregamento para feedback visual
   let isLoading = false;
@@ -857,6 +864,13 @@
       on:click={() => changePage(11)}
     >
       🗣️ Speak
+    </button>
+    <button 
+      class="nav-btn" 
+      class:active={currentPage === 12} 
+      on:click={() => changePage(12)}
+    >
+      📚 LEIA
     </button>
     <button 
       class="nav-btn dashboard-btn" 

@@ -23,7 +23,7 @@ O **Análise REGINA** é uma aplicação web desenvolvida em Svelte que processa
 ## 📑 Páginas do Sistema
 
 | Página | Descrição | Escala | Cor do Header |
-|--------|-----------|--------|---------------|
+| -------- | ----------- | -------- | --------------- |
 | 📊 **SUPER BI** | Médias de desempenho das escolas | 0-10 | Roxo |
 | 👥 **Aluno Presente** | Taxa de presença dos alunos | 0-100% | Verde |
 | 💻 **BI Plataformas** | Uso das plataformas educacionais | 0-100% | Rosa |
@@ -91,7 +91,7 @@ npm run dev
 
 ### Acesso
 
-Após executar, acesse: **http://localhost:8080**
+Após executar, acesse: **<http://localhost:8080>**
 
 ## 📁 Estrutura do Projeto
 
@@ -124,6 +124,7 @@ REGINA - ANUAL/
 ### Escolas (26 unidades)
 
 O sistema analisa dados de 26 escolas, incluindo:
+
 - **Escolas PEI** (Programa de Ensino Integral)
 - **Escolas Regulares** (1, 2 e 3 turnos)
 
@@ -147,6 +148,7 @@ O sistema analisa dados de 26 escolas, incluindo:
 ### Navegação
 
 Três botões no topo permitem alternar entre as páginas:
+
 - Cada página mantém o mesmo design
 - Cores distintas para fácil identificação
 - Transições suaves entre páginas
@@ -156,7 +158,7 @@ Três botões no topo permitem alternar entre as páginas:
 Para cada escola, o sistema fornece:
 
 | Métrica | Descrição |
-|---------|-----------|
+| --------- | ----------- |
 | **Média Simples** | Média aritmética dos 4 bimestres |
 | **Média Monte Carlo** | Média validada por simulação |
 | **Desvio Padrão** | Variabilidade dos bimestres |
@@ -233,9 +235,9 @@ Contribuições são bem-vindas! Para contribuir:
 
 **Profº Davi Antonino Nunes da Silva**
 
-- 📧 **E-mails:** 
-  - davi.silva@educacao.sp.gov.br
-  - professordavi85@gmail.com
+- 📧 **E-mails:**
+  - <davi.silva@educacao.sp.gov.br>
+  - <professordavi85@gmail.com>
 - 📱 **WhatsApp:** (16) 99260-4315
 
 ---
