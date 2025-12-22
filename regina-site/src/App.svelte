@@ -681,10 +681,12 @@
     const avgTarefas = tarefasData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / tarefasData.length;
     const avgBiRedacao = biRedacaoData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / biRedacaoData.length;
     const avgKhanAcademy = khanAcademyData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / khanAcademyData.length;
+    const avgAlura = aluraData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / aluraData.length;
     const avgMatific = matificData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / matificData.length;
     const avgSpeak = speakData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / speakData.length;
+    const avgLeia = leiaData.reduce((acc, s) => acc + (s.bimestres.b1 + s.bimestres.b2 + s.bimestres.b3 + s.bimestres.b4) / 4, 0) / leiaData.length;
     
-    const labels = ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy', 'Matific', 'Speak'];
+    const labels = ['SUPER BI', 'Aluno Presente', 'BI Plataformas', 'Apoio Presencial', 'Tarefas', 'BI Redação', 'Khan Academy', 'Alura', 'Matific', 'Speak', 'LEIA'];
     
     // Normalizar para escala 0-100 para comparação justa
     const schoolData = [
@@ -695,8 +697,10 @@
       school.tarefas ? school.tarefas.monteCarloMean : 0,
       school.biRedacao ? Math.min(school.biRedacao.monteCarloMean, 100) : 0,
       school.khanAcademy ? school.khanAcademy.monteCarloMean : 0,
+      school.alura ? school.alura.monteCarloMean * 10 : 0,
       school.matific ? school.matific.monteCarloMean * 10 : 0,
-      school.speak ? school.speak.monteCarloMean * 10 : 0
+      school.speak ? school.speak.monteCarloMean * 10 : 0,
+      school.leia ? (school.leia.monteCarloMean / 200) * 100 : 0
     ];
     
     const avgData = [
@@ -707,8 +711,10 @@
       avgTarefas,
       Math.min(avgBiRedacao, 100),
       avgKhanAcademy,
+      avgAlura * 10,
       avgMatific * 10,
-      avgSpeak * 10
+      avgSpeak * 10,
+      (avgLeia / 200) * 100
     ];
     
     comparisonChart = new Chart(ctx, {
@@ -923,15 +929,15 @@
     <div class="stat-card">
       <span class="stat-icon">📈</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 && currentPage !== 9 ? '%' : ''}</span>
-        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Maior Média' : currentPage === 2 ? 'Maior Presença' : 'Maior Uso'}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[0].monteCarloMean.toFixed(2) : '-'}{usesPercentage ? '%' : ''}</span>
+        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Maior Média' : currentPage === 2 ? 'Maior Presença' : currentPage === 12 ? 'Maior Índice' : 'Maior Uso'}</span>
       </div>
     </div>
     <div class="stat-card">
       <span class="stat-icon">📉</span>
       <div class="stat-info">
-        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{currentPage !== 1 && currentPage !== 9 ? '%' : ''}</span>
-        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Menor Média' : currentPage === 2 ? 'Menor Presença' : 'Menor Uso'}</span>
+        <span class="stat-value">{ranking.length > 0 ? ranking[ranking.length-1].monteCarloMean.toFixed(2) : '-'}{usesPercentage ? '%' : ''}</span>
+        <span class="stat-label">{currentPage === 1 || currentPage === 9 ? 'Menor Média' : currentPage === 2 ? 'Menor Presença' : currentPage === 12 ? 'Menor Índice' : 'Menor Uso'}</span>
       </div>
     </div>
     <div class="stat-card">
@@ -1195,6 +1201,19 @@
           {/if}
         </div>
       </div>
+      
+      <div class="indicator-card" class:has-data={selectedSchoolDashboard.leia}>
+        <span class="indicator-icon">📚</span>
+        <div class="indicator-info">
+          <span class="indicator-name">LEIA</span>
+          {#if selectedSchoolDashboard.leia}
+            <span class="indicator-value">{selectedSchoolDashboard.leia.monteCarloMean.toFixed(2)}</span>
+            <span class="indicator-scale">índice leitura</span>
+          {:else}
+            <span class="indicator-na">Sem dados</span>
+          {/if}
+        </div>
+      </div>
     </div>
     
     <!-- Gráficos -->
@@ -1338,6 +1357,17 @@
               <td>{selectedSchoolDashboard.speak.bimestres.b4.toFixed(2)}%</td>
               <td class="highlight">{selectedSchoolDashboard.speak.monteCarloMean.toFixed(4)}%</td>
               <td>[{selectedSchoolDashboard.speak.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.speak.confidenceInterval.upper.toFixed(2)}]</td>
+            </tr>
+            {/if}
+            {#if selectedSchoolDashboard.leia}
+            <tr>
+              <td>📚 LEIA</td>
+              <td>{selectedSchoolDashboard.leia.bimestres.b1.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.leia.bimestres.b2.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.leia.bimestres.b3.toFixed(2)}</td>
+              <td>{selectedSchoolDashboard.leia.bimestres.b4.toFixed(2)}</td>
+              <td class="highlight">{selectedSchoolDashboard.leia.monteCarloMean.toFixed(4)}</td>
+              <td>[{selectedSchoolDashboard.leia.confidenceInterval.lower.toFixed(2)} - {selectedSchoolDashboard.leia.confidenceInterval.upper.toFixed(2)}]</td>
             </tr>
             {/if}
           </tbody>
