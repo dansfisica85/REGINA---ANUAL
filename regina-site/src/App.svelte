@@ -627,6 +627,16 @@
         tension: 0.3
       });
     }
+    if (school.leia) {
+      datasets.push({
+        label: 'LEIA (÷2)',
+        data: [school.leia.bimestres.b1 / 2, school.leia.bimestres.b2 / 2, 
+               school.leia.bimestres.b3 / 2, school.leia.bimestres.b4 / 2],
+        borderColor: '#8E44AD',
+        backgroundColor: 'rgba(142, 68, 173, 0.1)',
+        tension: 0.3
+      });
+    }
     
     evolutionChart = new Chart(ctx, {
       type: 'line',
